@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ground-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ground-control
+  template:
+    metadata:
+      labels:
+        app: ground-control
+    spec:
+      containers:
+        - name: app
+          image: nginx
+          ports:
+            - containerPort: 80
