@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gc-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gc-postgres
+  template:
+    metadata:
+      labels:
+        app: gc-postgres
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-regcred
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "groundcontrol"
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "password"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gc-postgres
+spec:
+  selector:
+    app: gc-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

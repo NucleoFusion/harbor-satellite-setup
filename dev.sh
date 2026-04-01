@@ -2,109 +2,141 @@
 set -e
 
 CLUSTER=sat-sim
+HARBOR_CLUSTER=harbor-registry
 
-create_cluster() {
-  echo "🚀 Creating k3d cluster..."
-  k3d cluster create $CLUSTER --agents 2
+HARBOR_PORT=8888
+HARBOR_HOST=localhost:$HARBOR_PORT
+HARBOR_PROJECT=satellites
+
+create_harbor_cluster() {
+  if ! k3d cluster list | grep -q "$HARBOR_CLUSTER"; then
+    echo "📦 Creating Harbor cluster..."
+    k3d cluster create $HARBOR_CLUSTER \
+      --port "$HARBOR_PORT:30002@server:0" \
+      --k3s-arg "--disable=traefik@server:0"
+  else
+    echo "♻️ Harbor cluster exists"
+  fi
 }
 
 install_harbor() {
-  echo "📦 Installing Harbor..."
-
   helm repo add harbor https://helm.goharbor.io >/dev/null 2>&1 || true
   helm repo update >/dev/null
 
-  helm install harbor harbor/harbor \
-    --namespace harbor \
-    --create-namespace \
-    --set expose.type=nodePort \
-    --set expose.nodePort.ports.http.nodePort=30002 \
-    --set externalURL=http://localhost:5000 \
-    --set harborAdminPassword=admin \
-    --set expose.tls.enabled=false
+  if helm status harbor -n harbor >/dev/null 2>&1; then
+    echo "♻️ Harbor already installed"
+  else
+    helm install harbor harbor/harbor \
+      --namespace harbor \
+      --create-namespace \
+      --set expose.type=nodePort \
+      --set expose.nodePort.ports.http.nodePort=30002 \
+      --set externalURL=http://$HARBOR_HOST \
+      --set harborAdminPassword=admin \
+      --set expose.tls.enabled=false
+  fi
 }
 
 wait_for_harbor() {
-  echo "⏳ Waiting for Harbor to be ready (this takes time)..."
+  echo "⏳ Waiting for Harbor pods..."
 
   kubectl wait --namespace harbor \
     --for=condition=available deployment \
     --all --timeout=600s
 
-  echo "✅ Harbor is ready"
+  echo "⏳ Waiting for Harbor API..."
+
+  until curl -sf http://$HARBOR_HOST/api/v2.0/ping >/dev/null; do
+    sleep 3
+  done
+
+  # echo "⏳ Waiting for Registry..."
+
+  # until curl -sf http://$HARBOR_HOST/v2/_catalog >/dev/null; do
+  #   sleep 3
+  # done
+
+  echo "✅ Harbor fully ready"
 }
 
-seed_harbor() {
-  echo "📦 Seeding Harbor with images..."
-  kubectl apply -f k8s/harbor/seed-job.yaml
-  kubectl apply -f k8s/harbor/seed-images-job.yaml
+create_main_cluster() {
+  if ! k3d cluster list | grep -q "$CLUSTER"; then
+    echo "📦 Creating main cluster..."
+    k3d cluster create $CLUSTER \
+      --port "8000:30000@server:0" \
+      --k3s-arg "--disable=traefik@server:0" \
+      --registry-config ./k8s/k3d-registry.yaml
+  else
+    echo "♻️ Main cluster exists"
+  fi
+}
 
-  kubectl wait --for=condition=complete job/harbor-seed-images -n harbor --timeout=300s
+create_harbor_secret() {
+  kubectl delete secret harbor-regcred --ignore-not-found
 
-  echo "⏳ Waiting for seed job..."
-  kubectl wait --for=condition=complete job/harbor-seed -n harbor --timeout=120s
+  kubectl create secret docker-registry harbor-regcred \
+    --docker-server=$HARBOR_HOST \
+    --docker-username=admin \
+    --docker-password=admin
+}
 
-  echo "✅ Harbor seeded"
+build_and_push_gc() {
+  docker build -t ground-control:dev /home/nucleofusion/Programming/projects/satellite/ground-control
+
+  echo "admin" | docker login $HARBOR_HOST -u admin --password-stdin
+
+  docker tag ground-control:dev $HARBOR_HOST/$HARBOR_PROJECT/ground-control:dev
+  docker push $HARBOR_HOST/$HARBOR_PROJECT/ground-control:dev
 }
 
 deploy_system() {
-  echo "📡 Deploying ground-control + satellites..."
-
-  kubectl apply -f k8s/ground-control/ --recursive
-  kubectl apply -f k8s/satellites/ --recursive
-
-  kubectl wait --for=condition=available deployment --all --timeout=120s
-
-  echo "📊 Pods:"
+  kubectl apply -k k8s/ground-control
+  kubectl apply -f k8s/satellites/
   kubectl get pods -o wide
 }
 
-delete_cluster() {
-  echo "💣 Deleting cluster..."
-  k3d cluster delete $CLUSTER
+stop_workloads() {
+  kubectl delete -k k8s/ground-control --ignore-not-found
+  kubectl delete -f k8s/satellites/ --ignore-not-found
 }
 
-logs() {
-  kubectl logs -l app=satellite -f
-}
-
-status() {
-  kubectl get nodes
-  kubectl get pods -A
+reload() {
+  build_and_push_gc
+  kubectl rollout restart deployment ground-control
 }
 
 case $1 in
   up)
-    create_cluster
+    create_harbor_cluster
     install_harbor
+
+    create_main_cluster
+    create_harbor_secret
+
     wait_for_harbor
-    seed_harbor
+
+    docker login $HARBOR_HOST || true
+
+    build_and_push_gc
     deploy_system
-    echo "🎉 Full system is up"
+
+    echo "🎉 System is up"
     ;;
 
   down)
-    delete_cluster
+    stop_workloads
     ;;
 
-  logs)
-    logs
+  reload)
+    reload
     ;;
 
-  status)
-    status
-    ;;
-
-  reset)
-    delete_cluster
-    create_cluster
-    install_harbor
-    wait_for_harbor
-    seed_harbor
-    deploy_system
+  nuke)
+    k3d cluster delete "$CLUSTER"
+    k3d cluster delete "$HARBOR_CLUSTER"
     ;;
 
   *)
-    echo "Usage: ./dev.sh {up|down|logs|status|reset}"
+    echo "Usage: ./dev.sh {up|down|reload|nuke}"
     ;;
 esac

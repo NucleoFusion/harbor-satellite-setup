@@ -7,16 +7,21 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      imagePullSecrets:
+        - name: dockerhub-regcred
       containers:
         - name: seed
-          image: curlimages/curl
+          image: alpine:3.19
           command:
             - sh
             - -c
             - |
+              echo "Installing curl..."
+              apk add --no-cache curl
+
               echo "Creating project..."
 
-              curl -s -o /dev/null -w "%{http_code}" \
+              curl -v \
                 -u "admin:admin" \
                 -X POST \
                 "http://harbor.harbor.svc.cluster.local/api/v2.0/projects" \

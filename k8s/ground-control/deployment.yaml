@@ -12,8 +12,47 @@ spec:
       labels:
         app: ground-control
     spec:
+      imagePullSecrets:
+      - name: harbor-regcred
       containers:
-        - name: app
-          image: nginx
+        - name: ground-control
+          image: host.k3d.internal:8888/satellites/ground-control:dev
+          imagePullPolicy: Always
           ports:
-            - containerPort: 80
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: "gc-postgres"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_DATABASE
+              value: "groundcontrol"
+            - name: DB_USERNAME
+              value: "postgres"
+            - name: DB_PASSWORD
+              value: "password"
+
+            - name: HARBOR_USERNAME
+              value: "admin"
+            - name: HARBOR_PASSWORD
+              value: "admin"
+            - name: HARBOR_URL
+              value: "http://harbor.harbor.svc.cluster.local"
+
+            - name: PORT
+              value: "8000"
+
+            - name: ADMIN_PASSWORD
+              value: "Password@1"
+
+            - name: SKIP_HARBOR_HEALTH_CHECK
+              value: "true"
+
+            - name: SPIFFE_ENABLED
+              value: "false"
+            - name: SPIFFE_TRUST_DOMAIN
+              value: "harbor-satellite.local"
+            - name: SPIFFE_PROVIDER
+              value: "sidecar"
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: "unix:///run/spire/sockets/agent.sock"

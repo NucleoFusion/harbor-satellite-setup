@@ -12,6 +12,8 @@ spec:
       labels:
         app: satellite
     spec:
+      imagePullSecrets:
+        - name: dockerhub-regcred
       containers:
         - name: satellite
           image: busybox

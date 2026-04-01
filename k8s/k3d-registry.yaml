@@ -1,0 +1,4 @@
+mirrors:
+  "host.k3d.internal:8888":
+    endpoint:
+      - "http://host.k3d.internal:8888"
