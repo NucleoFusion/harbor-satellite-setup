@@ -12,7 +12,7 @@ create_harbor_cluster() {
   if ! k3d cluster list | grep -q "$HARBOR_CLUSTER"; then
     echo "📦 Creating Harbor cluster..."
     k3d cluster create $HARBOR_CLUSTER \
-      --port "$HARBOR_PORT:30002@server:0" \
+      --port "$HARBOR_PORT:30100@server:0" \
       --k3s-arg "--disable=traefik@server:0"
   else
     echo "♻️ Harbor cluster exists"
@@ -30,7 +30,7 @@ install_harbor() {
       --namespace harbor \
       --create-namespace \
       --set expose.type=nodePort \
-      --set expose.nodePort.ports.http.nodePort=30002 \
+      --set expose.nodePort.ports.http.nodePort=30100 \
       --set externalURL=http://$HARBOR_HOST \
       --set harborAdminPassword=admin \
       --set expose.tls.enabled=false
@@ -64,6 +64,9 @@ create_main_cluster() {
     echo "📦 Creating main cluster..."
     k3d cluster create $CLUSTER \
       --port "8000:30000@server:0" \
+      --port "8001:30001@server:0" \
+      --port "8002:30002@server:0" \
+      --port "8003:30003@server:0" \
       --k3s-arg "--disable=traefik@server:0" \
       --registry-config ./k8s/k3d-registry.yaml
   else
@@ -75,18 +78,27 @@ create_harbor_secret() {
   kubectl delete secret harbor-regcred --ignore-not-found
 
   kubectl create secret docker-registry harbor-regcred \
-    --docker-server=$HARBOR_HOST \
+    --docker-server=host.k3d.internal:8888 \
     --docker-username=admin \
     --docker-password=admin
 }
 
-build_and_push_gc() {
-  docker build -t ground-control:dev /home/nucleofusion/Programming/projects/satellite/ground-control
+build_and_push_images() {
+  echo "🔨 Building images..."
 
+  docker build -t ground-control:dev /home/nucleofusion/Programming/projects/satellite/ground-control
+  docker build -t satellite:dev /home/nucleofusion/Programming/projects/satellite
+
+  echo "🔐 Logging into Harbor..."
   echo "admin" | docker login $HARBOR_HOST -u admin --password-stdin
 
+  echo "🏷 Tagging..."
   docker tag ground-control:dev $HARBOR_HOST/$HARBOR_PROJECT/ground-control:dev
+  docker tag satellite:dev $HARBOR_HOST/$HARBOR_PROJECT/satellite:dev
+
+  echo "🚀 Pushing..."
   docker push $HARBOR_HOST/$HARBOR_PROJECT/ground-control:dev
+  docker push $HARBOR_HOST/$HARBOR_PROJECT/satellite:dev
 }
 
 deploy_system() {
@@ -101,7 +113,7 @@ stop_workloads() {
 }
 
 reload() {
-  build_and_push_gc
+  build_and_push_images
   kubectl rollout restart deployment ground-control
 }
 
@@ -117,7 +129,7 @@ case $1 in
 
     docker login $HARBOR_HOST || true
 
-    build_and_push_gc
+    build_and_push_images
     deploy_system
 
     echo "🎉 System is up"

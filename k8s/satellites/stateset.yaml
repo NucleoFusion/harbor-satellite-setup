@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: satellite
+spec:
+  serviceName: satellite
+  replicas: 3
+  selector:
+    matchLabels:
+      app: satellite
+  template:
+    metadata:
+      labels:
+        app: satellite
+    spec:
+      imagePullSecrets:
+        - name: harbor-regcred
+      containers:
+        - name: satellite
+          image: host.k3d.internal:8888/satellites/satellite:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+            - containerPort: 8585
+          env:
+            - name: SATELLITE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            - name: GROUND_CONTROL_URL
+              value: http://ground-control:8000
+
+            - name: HARBOR_REGISTRY_URL
+              value: http://host.k3d.internal:8888
+
+            - name: TOKEN
+              value: "dev-token"
