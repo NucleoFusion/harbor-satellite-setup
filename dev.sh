@@ -32,18 +32,23 @@ install_harbor() {
       --set expose.type=nodePort \
       --set expose.nodePort.ports.http.nodePort=30100 \
       --set externalURL=http://$HARBOR_HOST \
-      --set harborAdminPassword=admin \
+      --set harborAdminPassword=Harbor12345 \
       --set expose.tls.enabled=false
   fi
+}
+
+seed_harbor() {
+  echo "🌱 Seeding Harbor..."
+  ./seed.sh seed
 }
 
 wait_for_harbor() {
   echo "⏳ Waiting for Harbor pods..."
 
-  kubectl wait --namespace harbor \
-    --for=condition=available deployment \
-    --all --timeout=600s
-
+  # kubectl wait --namespace harbor \
+  #   --for=condition=available deployment \
+  #   --all --timeout=600s
+  #
   echo "⏳ Waiting for Harbor API..."
 
   until curl -sf http://$HARBOR_HOST/api/v2.0/ping >/dev/null; do
@@ -80,30 +85,11 @@ create_harbor_secret() {
   kubectl create secret docker-registry harbor-regcred \
     --docker-server=host.k3d.internal:8888 \
     --docker-username=admin \
-    --docker-password=admin
+    --docker-password=Harbor12345
 }
 
-build_and_push_images() {
-  echo "🔨 Building images..."
-
-  docker build -t ground-control:dev /home/nucleofusion/Programming/projects/satellite/ground-control
-  docker build -t satellite:dev /home/nucleofusion/Programming/projects/satellite
-
-  echo "🔐 Logging into Harbor..."
-  echo "admin" | docker login $HARBOR_HOST -u admin --password-stdin
-
-  echo "🏷 Tagging..."
-  docker tag ground-control:dev $HARBOR_HOST/$HARBOR_PROJECT/ground-control:dev
-  docker tag satellite:dev $HARBOR_HOST/$HARBOR_PROJECT/satellite:dev
-
-  echo "🚀 Pushing..."
-  docker push $HARBOR_HOST/$HARBOR_PROJECT/ground-control:dev
-  docker push $HARBOR_HOST/$HARBOR_PROJECT/satellite:dev
-}
-
-deploy_system() {
+deploy_gc() {
   kubectl apply -k k8s/ground-control
-  kubectl apply -f k8s/satellites/
   kubectl get pods -o wide
 }
 
@@ -126,11 +112,9 @@ case $1 in
     create_harbor_secret
 
     wait_for_harbor
+    deploy_gc
+    seed_harbor
 
-    docker login $HARBOR_HOST || true
-
-    build_and_push_images
-    deploy_system
 
     echo "🎉 System is up"
     ;;

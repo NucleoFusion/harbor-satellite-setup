@@ -35,7 +35,7 @@ spec:
             - name: HARBOR_USERNAME
               value: "admin"
             - name: HARBOR_PASSWORD
-              value: "admin"
+              value: "Harbor12345"
             - name: HARBOR_URL
               value: "http://harbor.harbor.svc.cluster.local"
 

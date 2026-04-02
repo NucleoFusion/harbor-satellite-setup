@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satellite-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satellite-0
+  template:
+    metadata:
+      labels:
+        app: satellite-0
+    spec:
+      imagePullSecrets:
+        - name: harbor-regcred
+      containers:
+        - name: satellite
+          image: host.k3d.internal:8888/satellites/satellite:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+            - containerPort: 8585
+          env:
+            - name: SATELLITE_ID
+              value: satellite-0
+
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: satellite-tokens
+                  key: satellite-0
+
+            - name: GROUND_CONTROL_URL
+              value: http://ground-control:8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satellite-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satellite-1
+  template:
+    metadata:
+      labels:
+        app: satellite-1
+    spec:
+      imagePullSecrets:
+        - name: harbor-regcred
+      containers:
+        - name: satellite
+          image: host.k3d.internal:8888/satellites/satellite:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+            - containerPort: 8585
+          env:
+            - name: SATELLITE_ID
+              value: satellite-1
+
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: satellite-tokens
+                  key: satellite-1
+
+            - name: GROUND_CONTROL_URL
+              value: http://ground-control:8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: satellite-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: satellite-2
+  template:
+    metadata:
+      labels:
+        app: satellite-2
+    spec:
+      imagePullSecrets:
+        - name: harbor-regcred
+      containers:
+        - name: satellite
+          image: host.k3d.internal:8888/satellites/satellite:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+            - containerPort: 8585
+          env:
+            - name: SATELLITE_ID
+              value: satellite-2
+
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: satellite-tokens
+                  key: satellite-2
+
+            - name: GROUND_CONTROL_URL
+              value: http://ground-control:8000
