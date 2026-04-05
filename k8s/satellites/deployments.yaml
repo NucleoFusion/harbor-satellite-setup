@@ -31,9 +31,11 @@ spec:
                   name: satellite-tokens
                   key: satellite-0
 
+            - name: HARBOR_REGISTRY_URL
+              value: http://host.k3d.internal:8888
+
             - name: GROUND_CONTROL_URL
               value: http://ground-control:8000
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -67,6 +69,9 @@ spec:
                 secretKeyRef:
                   name: satellite-tokens
                   key: satellite-1
+
+            - name: HARBOR_REGISTRY_URL
+              value: http://host.k3d.internal:8888
 
             - name: GROUND_CONTROL_URL
               value: http://ground-control:8000
@@ -103,6 +108,9 @@ spec:
                 secretKeyRef:
                   name: satellite-tokens
                   key: satellite-2
+
+            - name: HARBOR_REGISTRY_URL
+              value: http://host.k3d.internal:8888
 
             - name: GROUND_CONTROL_URL
               value: http://ground-control:8000
