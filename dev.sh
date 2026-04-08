@@ -146,7 +146,7 @@ case $1 in
     echo "🎉 System is up"
     ;;
   down)
-    stop_workloads
+    k3d cluster delete "$CLUSTER"
     ;;
   reload)
     reload

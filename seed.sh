@@ -134,7 +134,7 @@ create_groups() {
     "group": "edge-1",
     "registry": "http://host.k3d.internal:8888",
     "artifacts": [
-      { "repository": "mock/nginx", "tag": ["alpine"], "type": "image" },
+      { "repository": "mock/nginx", "tag": ["latest"], "type": "image" },
       { "repository": "mock/busybox", "tag": ["latest"], "type": "image" }
     ]
   }'
@@ -146,7 +146,7 @@ create_groups() {
       { "repository": "satellites/satellite", "tag": ["dev"], "type": "image" },
       { "repository": "mock/nginx", "tag": ["latest"], "type": "image" },
       { "repository": "mock/alpine", "tag": ["latest"], "type": "image" },
-      { "repository": "mock/redis", "tag": ["7"], "type": "image" }
+      { "repository": "mock/redis", "tag": ["latest"], "type": "image" }
     ]
   }'
 

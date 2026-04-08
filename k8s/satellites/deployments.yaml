@@ -24,6 +24,9 @@ spec:
           env:
             - name: SATELLITE_ID
               value: satellite-0
+            
+            - name: USE_UNSECURE 
+              value: "true" 
 
             - name: TOKEN
               valueFrom:
@@ -64,6 +67,9 @@ spec:
             - name: SATELLITE_ID
               value: satellite-1
 
+            - name: USE_UNSECURE 
+              value: "true" 
+
             - name: TOKEN
               valueFrom:
                 secretKeyRef:
@@ -102,6 +108,9 @@ spec:
           env:
             - name: SATELLITE_ID
               value: satellite-2
+
+            - name: USE_UNSECURE 
+              value: "true" 
 
             - name: TOKEN
               valueFrom:
