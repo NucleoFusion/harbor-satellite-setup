@@ -9,6 +9,10 @@ HARBOR_PORT=8888
 HARBOR_HOST=localhost:$HARBOR_PORT
 HARBOR_PROJECT=satellites
 
+
+GC_PATH=/home/nucleofusion/Programming/projects/satellite/ground-control
+SAT_PATH=/home/nucleofusion/Programming/projects/satellite
+
 # -------------------------------
 # Context
 # -------------------------------
@@ -106,9 +110,24 @@ stop_workloads() {
   kubectl delete -f k8s/satellites/ --ignore-not-found
 }
 
+build_and_push() {
+  echo "🔨 Building images..." >&2
+  docker build -t ground-control:dev "$GC_PATH"
+  docker build -t satellite:dev "$SAT_PATH"
+
+  echo "🚀 Pushing images..." >&2
+  docker tag ground-control:dev host.k3d.internal:8888/satellites/ground-control:dev
+  docker tag satellite:dev host.k3d.internal:8888/satellites/satellite:dev
+
+  docker push host.k3d.internal:8888/satellites/ground-control:dev
+  docker push host.k3d.internal:8888/satellites/satellite:dev
+}
+
 reload() {
   use_main_cluster
-  kubectl rollout restart deployment ground-control
+  build_and_push
+  kubectl rollout restart deployment/ground-control
+  kubectl rollout restart deployment/satellite-0 deployment/satellite-1 deployment/satellite-2
 }
 
 # -------------------------------

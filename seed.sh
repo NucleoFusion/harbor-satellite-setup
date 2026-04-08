@@ -134,10 +134,8 @@ create_groups() {
     "group": "edge-1",
     "registry": "http://host.k3d.internal:8888",
     "artifacts": [
-      { "repository": "satellites/ground-control", "tag": ["dev"], "type": "image" },
-      { "repository": "satellites/satellite", "tag": ["dev"], "type": "image" },
-      { "repository": "library/nginx", "tag": ["alpine"], "type": "image" },
-      { "repository": "library/busybox", "tag": ["latest"], "type": "image" }
+      { "repository": "mock/nginx", "tag": ["alpine"], "type": "image" },
+      { "repository": "mock/busybox", "tag": ["latest"], "type": "image" }
     ]
   }'
 
@@ -146,9 +144,9 @@ create_groups() {
     "registry": "http://host.k3d.internal:8888",
     "artifacts": [
       { "repository": "satellites/satellite", "tag": ["dev"], "type": "image" },
-      { "repository": "library/nginx", "tag": ["latest"], "type": "image" },
-      { "repository": "library/alpine", "tag": ["latest"], "type": "image" },
-      { "repository": "library/redis", "tag": ["7"], "type": "image" }
+      { "repository": "mock/nginx", "tag": ["latest"], "type": "image" },
+      { "repository": "mock/alpine", "tag": ["latest"], "type": "image" },
+      { "repository": "mock/redis", "tag": ["7"], "type": "image" }
     ]
   }'
 
